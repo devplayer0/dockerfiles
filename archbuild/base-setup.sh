@@ -8,6 +8,8 @@ sed -i 's/#\(en_US\.UTF-8\)/\1/' /etc/locale.gen
 locale-gen
 echo "LANG=en_IE.UTF-8" > /etc/locale.conf
 
+echo "[multilib]" >> /etc/pacman.conf
+echo "Include = /etc/pacman.d/mirrorlist" >> /etc/pacman.conf
 pacman -Syu --noconfirm base-devel nano vim git pacman-contrib
 paccache --remove --keep 0
 
