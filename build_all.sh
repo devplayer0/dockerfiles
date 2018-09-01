@@ -6,3 +6,4 @@ build_image() {
 
 build_image archbuild
 build_image mingw64
+build_image winrust
