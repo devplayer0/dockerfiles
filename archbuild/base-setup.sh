@@ -1,4 +1,5 @@
 #!/bin/bash
+set -e
 
 ln -sf /usr/share/zoneinfo/Europe/Dublin /etc/localtime
 
