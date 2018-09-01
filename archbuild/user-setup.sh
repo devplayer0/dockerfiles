@@ -1,13 +1,16 @@
 #!/bin/bash
 set -e
 
-cd /build
+mkdir user/
 
 git clone https://aur.archlinux.org/yay.git
 cd yay/
 makepkg --syncdeps --install --noconfirm
 cd ..
-rm -rf /build/.cache/ yay/
+rm -rf yay/
+paccache --remove --keep 0
+
+yay --afterclean --removemake --save
 
 # self-delete
 rm -- "$0"
