@@ -8,6 +8,7 @@ import stat
 import subprocess
 import time
 import signal
+import traceback
 
 import paramiko
 
@@ -63,18 +64,25 @@ def deploy(_args, config):
             sftp = client.open_sftp()
             sftp.chdir(target['path'])
 
-            for domain in os.listdir(CERTS_PATH):
+            for entry in os.scandir(CERTS_PATH):
+                if not entry.is_dir():
+                    continue
+                domain = entry.name
+
                 try:
                     s = sftp.stat(domain)
-                    if not stat.S_ISDIR(s):
+                    if not stat.S_ISDIR(s.st_mode):
                         raise FileNotFoundError('must be a directory')
                 except FileNotFoundError:
-                    sftp.mkdir(domain)
+                    sftp.mkdir(domain, mode=0o770)
 
-                sftp.put(path.join(CERTS_PATH, 'fullchain.pem'), path.join(domain, 'cert.pem'))
-                sftp.put(path.join(CERTS_PATH, 'privkey.pem'), path.join(domain, 'key.pem'))
-        except Exception as e:
-            print(e, file=sys.stderr)
+                sftp.put(path.join(CERTS_PATH, domain, 'fullchain.pem'), path.join(domain, 'cert.pem'))
+
+                key_path = path.join(domain, 'key.pem')
+                sftp.put(path.join(CERTS_PATH, domain, 'privkey.pem'), key_path)
+                sftp.chmod(key_path, 0o640)
+        except Exception:
+            traceback.print_exc()
         finally:
             client.close()
 
@@ -91,7 +99,7 @@ def main():
     p_daemon.set_defaults(_function=daemon)
 
     p_deploy = subparsers.add_parser('deploy', help='Deploy certs')
-    p_deploy.set_defaults(_function=daemon)
+    p_deploy.set_defaults(_function=deploy)
 
     args = parser.parse_args()
     with open(args.config_file) as conf:
