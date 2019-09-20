@@ -1,0 +1,103 @@
+#!/usr/bin/env python
+import json
+import argparse
+import sys
+import os
+from os import path
+import stat
+import subprocess
+import time
+import signal
+
+import paramiko
+
+def sig_handler(_signum, _frame):
+    sys.exit(0)
+
+DEPLOY_CMD = f'{path.abspath(sys.argv[0])} deploy'
+
+CLOUDFLARE_INI_FILE = '/etc/letsencrypt/cloudflare.ini'
+CLOUDFLARE_INI_TEMPLATE = '''
+dns_cloudflare_email={email}
+dns_cloudflare_api_key={api_key}
+'''
+def init(_args, config):
+    old_umask = os.umask(0o007)
+    with open(CLOUDFLARE_INI_FILE, 'w') as f:
+        f.write(CLOUDFLARE_INI_TEMPLATE.format(**config['cloudflare']))
+    os.umask(old_umask)
+
+    args = ['certbot', 'certonly', '--non-interactive', '--agree-tos', '--email', config['email'], '--dns-cloudflare', 
+            '--dns-cloudflare-credentials', CLOUDFLARE_INI_FILE, '--dns-cloudflare-propagation-seconds', 
+            str(config['cloudflare']['propagation_seconds']), '--deploy-hook', DEPLOY_CMD]
+    if 'dry_run' in config and config['dry_run']:
+        args.append('--dry-run')
+
+    for domain in config['domains']:
+        args += ['-d', domain]
+    subprocess.check_call(args)
+
+def daemon(_args, config):
+    args = ['certbot', 'renew']
+    if 'dry_run' in config and config['dry_run']:
+        args.append('--dry-run')
+    args += ['--deploy-hook', DEPLOY_CMD]
+
+    signal.signal(signal.SIGINT, sig_handler)
+    signal.signal(signal.SIGTERM, sig_handler)
+    while True:
+        subprocess.check_call(args)
+        time.sleep(config['interval'])
+
+CERTS_PATH = '/etc/letsencrypt/live'
+def deploy(_args, config):
+    for target in config['deploy']:
+        print(f'Deploying to {target["user"]}@{target["host"]}:{target["path"]}')
+        port = 22 if 'port' not in target else target['port']
+
+        try:
+            client = paramiko.client.SSHClient()
+            client.set_missing_host_key_policy(paramiko.client.WarningPolicy)
+            client.connect(target['host'], port=port, username=target['user'], password=target['password'], \
+                look_for_keys=False)
+            sftp = client.open_sftp()
+            sftp.chdir(target['path'])
+
+            for domain in os.listdir(CERTS_PATH):
+                try:
+                    s = sftp.stat(domain)
+                    if not stat.S_ISDIR(s):
+                        raise FileNotFoundError('must be a directory')
+                except FileNotFoundError:
+                    sftp.mkdir(domain)
+
+                sftp.put(path.join(CERTS_PATH, 'fullchain.pem'), path.join(domain, 'cert.pem'))
+                sftp.put(path.join(CERTS_PATH, 'privkey.pem'), path.join(domain, 'key.pem'))
+        except Exception as e:
+            print(e, file=sys.stderr)
+        finally:
+            client.close()
+
+def main():
+    parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    parser.add_argument('-c', '--config', default='/etc/letsencrypt/certbotd.json', dest='config_file',
+                        help='Path to config file')
+    subparsers = parser.add_subparsers(required=True, dest='command')
+
+    p_init = subparsers.add_parser('init', help='Initialize certbot')
+    p_init.set_defaults(_function=init)
+
+    p_daemon = subparsers.add_parser('daemon', help='Renewal "daemon"')
+    p_daemon.set_defaults(_function=daemon)
+
+    p_deploy = subparsers.add_parser('deploy', help='Deploy certs')
+    p_deploy.set_defaults(_function=daemon)
+
+    args = parser.parse_args()
+    with open(args.config_file) as conf:
+        config = json.load(conf)
+
+    args._function(args, config)
+
+if __name__ == '__main__':
+    main()

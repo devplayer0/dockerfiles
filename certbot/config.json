@@ -1,0 +1,23 @@
+{
+    "email": "admin@example.com",
+    "dry_run": true,
+    "interval": 30,
+    "domains": [
+        "example.com",
+        "*.example.com"
+    ],
+    "cloudflare": {
+        "email": "admin@example.com",
+        "api_key": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+        "propagation_seconds": 20
+    },
+    "deploy": [
+        {
+            "user": "certbot",
+            "host": "myserver",
+            "port": 22,
+            "password": "hunter2",
+            "path": "/etc/ssl/private"
+        }
+    ]
+}
