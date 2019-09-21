@@ -4,6 +4,8 @@ RUN apk add --no-cache bash rsync mailcap darkhttpd tini
 
 VOLUME /data
 ENV BW_LIMIT=0
+ENV ALPINE_BRANCHES=v3.10
+ENV ALPINE_ARCHES=x86_64
 
 RUN ln -s /usr/local/bin/sync.sh /etc/periodic/hourly/sync
 COPY sync.sh entrypoint.sh /usr/local/bin/

@@ -1,0 +1,18 @@
+version: '3'
+services:
+  arch: &mirror
+    image: devplayer0/distromirror
+    build: .
+    environment:
+      - DISTRO=arch
+      - SOURCE_URL=rsync://mirror.f4st.host/archlinux/
+      - LASTUPDATE_URL=https://mirror.f4st.host/archlinux/lastupdate
+    volumes:
+      - ./data:/data
+  alpine:
+    <<: *mirror
+    environment:
+      - DISTRO=alpine
+      - SOURCE_URL=rsync://rsync.alpinelinux.org/alpine/
+      - ALPINE_BRANCHES=v3.10 edge
+      - ALPINE_ARCHES=x86_64
