@@ -81,6 +81,16 @@ def deploy(_args, config):
                 key_path = path.join(domain, 'key.pem')
                 sftp.put(path.join(CERTS_PATH, domain, 'privkey.pem'), key_path)
                 sftp.chmod(key_path, 0o640)
+            sftp.close()
+
+            if 'post_command' in target:
+                cmd = target['post_command']
+                print(f'Executing post-deploy hook "{cmd}')
+
+                _stdin, stdout, _stderr = client.exec_command(cmd)
+                result = stdout.channel.recv_exit_status()
+                if result != 0:
+                    print(f'Warning: "{cmd}"" returned non-zero exit status {result}')
         except Exception:
             traceback.print_exc()
         finally:

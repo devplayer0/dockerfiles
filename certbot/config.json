@@ -17,7 +17,8 @@
             "host": "myserver",
             "port": 22,
             "password": "hunter2",
-            "path": "/etc/ssl/private"
+            "path": "/etc/ssl/private",
+            "post_command": "sudo rc-service nginx restart"
         }
     ]
 }
