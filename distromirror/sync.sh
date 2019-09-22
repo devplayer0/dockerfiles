@@ -79,13 +79,13 @@ if [ "$DISTRO" == "arch" ]; then
 		--exclude='/other' \
 		--exclude='/sources' \
 		"$SOURCE_URL" \
-		"$TARGET"
+		"$target"
 else
 	for branch in $ALPINE_BRANCHES; do
 		log "Syncing branch $branch"
 		rsync_cmd \
 			"${SOURCE_URL}${branch}" \
-			"$TARGET"
+			"$target"
 	done
 fi
 
