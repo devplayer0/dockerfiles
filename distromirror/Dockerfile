@@ -1,6 +1,9 @@
 FROM alpine:3.10
 
-RUN apk add --no-cache bash rsync mailcap darkhttpd tini
+RUN apk add --no-cache bash curl rsync nginx tini
+
+COPY nginx.conf /etc/nginx/nginx.conf
+RUN mkdir /run/nginx /tmp/nginx && chown nobody:nobody /run/nginx /tmp/nginx && ln -s /tmp/nginx /var/tmp/nginx
 
 VOLUME /data
 ENV BW_LIMIT=0
