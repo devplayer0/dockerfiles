@@ -28,8 +28,8 @@ def init(cmd_args, config):
         f.write(CLOUDFLARE_INI_TEMPLATE.format(**config['cloudflare']))
     os.umask(old_umask)
 
-    args = ['certbot', 'certonly', '--non-interactive', '--agree-tos', '--email', config['email'], '--dns-cloudflare', 
-            '--dns-cloudflare-credentials', CLOUDFLARE_INI_FILE, '--dns-cloudflare-propagation-seconds', 
+    args = ['certbot', 'certonly', '--non-interactive', '--agree-tos', '--email', config['email'], '--dns-cloudflare',
+            '--dns-cloudflare-credentials', CLOUDFLARE_INI_FILE, '--dns-cloudflare-propagation-seconds', '--expand',
             str(config['cloudflare']['propagation_seconds']), '--deploy-hook', DEPLOY_CMD]
     if 'dry_run' in config and config['dry_run']:
         args.append('--dry-run')
